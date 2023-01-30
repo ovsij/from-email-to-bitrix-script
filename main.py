@@ -13,9 +13,9 @@ def main():
     imap = imaplib.IMAP4_SSL(config.imap_server, 993)
     imap.login(username, mail_pass)
     imap.select('INBOX')
-    try:
-        typ, data = imap.search(None, "UNSEEN", config.from_email)
-        for num in data[0].split():
+    typ, data = imap.search(None, "UNSEEN", config.from_email)
+    for num in data[0].split():
+        try:
             result, data = imap.fetch(num, '(RFC822)')
             raw_email = data[0][1]
             raw_email_string = raw_email.decode()
@@ -25,14 +25,14 @@ def main():
             string1 = 'На ваш счет ' + text.split('На ваш счет ')[-1].split(' Остаток')[0]
             string2 = 'Плательщик: ' + text.split('Плательщик: ')[-1].split('Счет:')[0]
             string3 = 'Назначение платежа: ' + text.split('Назначение платежа: ')[-1].split('С уважением')[0]
-            message = {'POST_MESSAGE': string1 + '\n\n' + string2 + '\n' + string3, 'POST_TITLE': 'От кого: albo-no-reply@alfa-bank.info'}
-            webhook = config.webhook
-            request = requests.get(webhook + 'log.blogpost.add', message)
+            message = {'DIALOG_ID': config.dialog_id,'MESSAGE': 'От кого: albo-no-reply@alfa-bank.info \n\n' + string1 + '\n\n' + string2 + '\n' + string3}
+            request = requests.get(config.webhook + 'im.message.add', message)
+            print(message)
             print(request.json())
             imap.close()
             imap.logout()
-    except:
-        pass
+        except Exception as e:
+            print(e)
     
 
 if __name__ == '__main__':
