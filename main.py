@@ -20,19 +20,30 @@ def main():
             raw_email = data[0][1]
             raw_email_string = raw_email.decode()
             email_message = email.message_from_string(raw_email_string)
-            msg_body = email_message.get_payload()
-            text = str(base64.b64decode(msg_body).decode('utf8').replace('>', ''))
-            string1 = 'На ваш счет ' + text.split('На ваш счет ')[-1].split(' Остаток')[0]
-            string2 = 'Плательщик: ' + text.split('Плательщик: ')[-1].split('Счет:')[0]
-            string3 = 'Назначение платежа: ' + text.split('Назначение платежа: ')[-1].split('С уважением')[0]
-            message = {'DIALOG_ID': config.dialog_id,'MESSAGE': 'От кого: albo-no-reply@alfa-bank.info \n\n' + string1 + '\n\n' + string2 + '\n' + string3}
-            request = requests.get(config.webhook + 'im.message.add', message)
-            print(message)
-            print(request.json())
-            imap.close()
-            imap.logout()
+            
+            bytes, encoding = email.header.decode_header(email_message['Subject'])[0]
+            if bytes.decode(encoding) == 'Поступление на счет':
+                if email_message.is_multipart():
+                    print('Multipart: Yes')
+                    for part in email_message.walk():
+                        try:
+                            text = part.get_payload(decode=True).decode('utf-8')
+                        except:
+                            continue
+                        
+                        #text = str(base64.b64decode(payload).decode('utf8'))
+                        #print(text)
+                string1 = 'На ваш счет ' + text.split('На ваш счет ')[-1].split(' Остаток')[0].replace('&quot;', '\"')
+                string2 = 'Плательщик: ' + text.split('Плательщик: ')[-1].split('Счет:')[0].strip('<br>').replace('<br>', '').replace('&quot;', '\"')
+                string3 = 'Назначение платежа: ' + text.split('Назначение платежа: ')[-1].split('С уважением')[0].strip('<br>').replace('<br>', '').replace('&quot;', '\"')
+                message = {'DIALOG_ID': config.dialog_id,'MESSAGE': 'От кого: albo-no-reply@alfa-bank.info \n\n' + string1 + '\n\n' + string2 + '\n' + string3}
+                request = requests.get(config.webhook + 'im.message.add', message)
+                print(message)
+                print(request.json())
         except Exception as e:
             print(e)
+    imap.close()
+    imap.logout()
     
 
 if __name__ == '__main__':
